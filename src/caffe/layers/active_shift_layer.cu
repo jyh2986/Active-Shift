@@ -456,7 +456,7 @@ void ActiveShiftLayer<Dtype>::Backward_gpu(const vector<Blob<Dtype>*>& top,
   Dtype* xposDiff = this->blobs_[0]->mutable_gpu_diff();
   Dtype* yposDiff = this->blobs_[1]->mutable_gpu_diff();
 
-  if (this->param_propagate_down_[0] && this->param_propagate_down_[1] && Caffe::current_iter()>=warming_up_)
+  if (this->param_propagate_down_[0] && this->param_propagate_down_[1])// && Caffe::current_iter()>=warming_up_)
   {
 	  count = top[0]->count();
 	  int buf_offset = num_output_ * top_height_ * top_width_;	//(C*1) x (1*H*W)

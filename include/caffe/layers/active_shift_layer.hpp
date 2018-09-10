@@ -62,7 +62,6 @@ class ActiveShiftLayer: public Layer<Dtype> {
   //Gradient control
   bool normalize_diff_;	//Normalization
   bool clip_gradient_;	//Clip Gradient
-  int warming_up_;	//Warm-up
 
   //Regularization
   Dtype lattice_decay_;

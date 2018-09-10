@@ -57,12 +57,6 @@ void MyCheckGradientExhaustive(Layer<Dtype>* layer,
     const vector<Blob<Dtype>*>& bottom, const vector<Blob<Dtype>*>& top,
     int check_bottom = -1) {
 
-  vector<bool> check_param;
-  check_param.resize(3,false);
-  check_param[0] = true;	//pos_x
-  check_param[1] = true;	//pos_y
-  check_param[2] = true;	//bottom
-
   GradientChecker<Dtype> checker(1e-2, 1e-3);
   layer->SetUp(bottom, top);
   CHECK_GT(top.size(), 0) << "Exhaustive mode requires at least one top blob.";
@@ -71,7 +65,7 @@ void MyCheckGradientExhaustive(Layer<Dtype>* layer,
     // LOG(ERROR) << "Exhaustive: blob " << i << " size " << top[i]->count();
     for (int j = 0; j < top[i]->count(); ++j) {
       // LOG(ERROR) << "Exhaustive: blob " << i << " data " << j;
-      checker.CheckGradientSingle(layer, bottom, top, check_bottom, i, j, false, &check_param);
+      checker.CheckGradientSingle(layer, bottom, top, check_bottom, i, j, false);
     }
   }
 }

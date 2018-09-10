@@ -524,7 +524,7 @@ message ASLParameter {
   optional float lattice_decay = 15 [default = 0];  
     
   optional bool normalize = 20 [default = false];
-  optional uint32 warming_up = 21 [default = 0];
+  //optional uint32 warming_up = 21 [default = 0];
   optional float clip_gradient = 22 [default = 0];
 }
 

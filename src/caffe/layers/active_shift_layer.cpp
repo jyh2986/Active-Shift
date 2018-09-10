@@ -54,19 +54,8 @@ void ActiveShiftLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
 	//gradient setup
 	normalize_diff_ = asl_param.normalize();
 	clip_gradient_ = asl_param.clip_gradient();
-	warming_up_ = asl_param.warming_up();
 
 	CHECK(!(normalize_diff_ && clip_gradient_!=0)) << "Normalize and clip_gradient should not be used at the same time.";
-
-	//Setup Warming up
-	if(warming_up_!=0)
-	{
-		Dtype* xposDiff = this->blobs_[0]->mutable_cpu_diff();
-		Dtype* yposDiff = this->blobs_[1]->mutable_cpu_diff();
-
-		caffe_set(this->blobs_[0]->count(), Dtype(0), xposDiff);
-		caffe_set(this->blobs_[1]->count(), Dtype(0), yposDiff);
-	}
 
 	//Regularization
 	lattice_decay_ = asl_param.lattice_decay();
@@ -110,8 +99,7 @@ void ActiveShiftLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
 	caffe_set(temp_multiplier_.count(), Dtype(1), temp_multiplier_.mutable_cpu_data());
 
 	//temp buff for position diff
-	p_temp_buff_ = this->get_share_buffer();
-	p_temp_buff_ = (p_temp_buff_ == NULL)?&temp_buff_:p_temp_buff_;
+	p_temp_buff_ = &temp_buff_;
 	p_temp_buff_->Reshape(2, num_output_, top_height_,top_width_);	// 2 for x,y pos_diff
 
 
@@ -149,7 +137,6 @@ void ActiveShiftLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 
 	int index = 0;
 
-#if 1
 	for (int n = 0; n < num_; ++n) {
 		for (int c = 0; c < channels_; ++c) {
 			const Dtype x = xpos[c];
@@ -207,65 +194,6 @@ void ActiveShiftLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 			}
 		}
 	}
-#else
-
-	/*if(stride_w == 1 && stride_h ==1)
-	{
-		caffe_set(top[0]->count(), Dtype(0.), top_data);
-
-		for (int n = 0; n < num_; ++n) {
-			for (int c = 0; c < channels; ++c) {
-				const int x = (int)xpos[c];
-				const int y = (int)ypos[c];
-
-				const Dtype* data_im_ptr = bottom_data + n*channels*bottom_sp_dim + c*bottom_sp_dim;
-
-				for (int h = 0; h < top_height; ++h) {
-					Dtype* Y = &top_data[index];
-
-					if(is_a_ge_zero_and_a_lt_b(h+y, bottom_height))
-					{
-						const Dtype* X = &data_im_ptr[(h+y)*bottom_width+std::max(0,x)];
-						memcpy(Y, X, sizeof(Dtype) * (bottom_width - abs(x)));
-					}
-
-					index += top_width;
-				}
-			}
-		}
-	}
-	else*/
-	{
-		for (int n = 0; n < num_; ++n) {
-			for (int c = 0; c < channels_; ++c) {
-				const int x = (int)xpos[c];
-				const int y = (int)ypos[c];
-
-				const Dtype* data_im_ptr = bottom_data + n*channels_*bottom_sp_dim + c*bottom_sp_dim;
-
-				for (int h = 0; h < top_height; ++h) {
-					for (int w = 0; w < top_width; ++w) {
-						const int h_offset = h * stride_h_ - pad_h_;
-						const int w_offset = w * stride_w_ - pad_w_;
-
-						int h_im, w_im;
-
-						h_im = h_offset + y;
-						w_im = w_offset + x;
-						//Dtype q11 = (h_im >= 0 && w_im >= 0 && h_im < bottom_height && w_im < bottom_width) ? data_im_ptr[h_im*bottom_width + w_im] : 0;
-						Dtype val = (IS_IN_BOUND==1)?data_im_ptr[h_im*bottom_width_ + w_im]:0;
-
-						top_data[index] = val;
-
-						index++;
-					}
-				}
-			}
-		}
-	}
-
-
-#endif
 }
 
 template <typename Dtype>
