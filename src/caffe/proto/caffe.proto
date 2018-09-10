@@ -322,7 +322,7 @@ message ParamSpec {
 // NOTE
 // Update the next available ID when you add a new LayerParameter field.
 //
-// LayerParameter next available layer-specific ID: 147 (last added: recurrent_param)
+// LayerParameter next available layer-specific ID: 148 (last added: asl_param)
 message LayerParameter {
   optional string name = 1; // the layer name
   optional string type = 2; // the layer type
@@ -374,8 +374,9 @@ message LayerParameter {
   // for their implementation. These layers include an Engine type and
   // engine parameter for selecting the implementation.
   // The default for the engine is set by the ENGINE switch at compile-time.
-  optional AccuracyParameter accuracy_param = 102;
+  optional AccuracyParameter accuracy_param = 102;  
   optional ArgMaxParameter argmax_param = 103;
+  optional ASLParameter asl_param = 149;
   optional BatchNormParameter batch_norm_param = 139;
   optional BiasParameter bias_param = 141;
   optional ConcatParameter concat_param = 104;
@@ -502,6 +503,29 @@ message ArgMaxParameter {
   // By default ArgMaxLayer maximizes over the flattened trailing dimensions
   // for each index of the first / num dimension.
   optional int32 axis = 3;
+}
+
+message ASLParameter {
+  optional uint32 pad = 1 [default = 0]; // The padding size; defaults to 0
+  optional uint32 stride = 2 [default = 1]; // The stride; defaults to 1
+
+  optional uint32 pad_h = 3 [default = 0]; // The padding height
+  optional uint32 pad_w = 4 [default = 0]; // The padding width
+  optional uint32 stride_h = 5 [default = 1]; // The stride height
+  optional uint32 stride_w = 6 [default = 1]; // The stride width
+  
+    
+  optional int32 multiplier = 8 [default = 1];	// Output channels = input channels * multiplier
+  
+  optional FillerParameter shift_filler = 10; // The filler for the shift values
+  optional float base_radius = 11 [default = 1];
+  
+    
+  optional float lattice_decay = 15 [default = 0];  
+    
+  optional bool normalize = 20 [default = false];
+  optional uint32 warming_up = 21 [default = 0];
+  optional float clip_gradient = 22 [default = 0];
 }
 
 message ConcatParameter {
