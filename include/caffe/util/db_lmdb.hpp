@@ -36,15 +36,29 @@ class LMDBCursor : public Cursor {
   }
   virtual bool valid() { return valid_; }
 
+  // Retrieve by key
+  virtual void Retrieval(string* key_name) { SeekbyKey(key_name); }
+
+
  private:
   void Seek(MDB_cursor_op op) {
     int mdb_status = mdb_cursor_get(mdb_cursor_, &mdb_key_, &mdb_value_, op);
     if (mdb_status == MDB_NOTFOUND) {
       valid_ = false;
+      if(op==MDB_SET){
+    	  LOG(FATAL)<<"No Key";
+      }
     } else {
       MDB_CHECK(mdb_status);
       valid_ = true;
     }
+  }
+
+  void SeekbyKey(string* key_name) {
+	mdb_key_.mv_size = key_name->size();
+	mdb_key_.mv_data = const_cast<char*>(key_name->data());
+
+	Seek(MDB_SET);
   }
 
   MDB_txn* mdb_txn_;

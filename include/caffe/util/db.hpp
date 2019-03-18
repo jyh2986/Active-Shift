@@ -19,6 +19,7 @@ class Cursor {
   virtual string key() = 0;
   virtual string value() = 0;
   virtual bool valid() = 0;
+  virtual void Retrieval(string* new_key) = 0;
 
   DISABLE_COPY_AND_ASSIGN(Cursor);
 };

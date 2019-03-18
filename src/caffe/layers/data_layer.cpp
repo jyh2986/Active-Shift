@@ -4,10 +4,13 @@
 #include <stdint.h>
 
 #include <vector>
+#include <cstdlib>
 
 #include "caffe/data_transformer.hpp"
 #include "caffe/layers/data_layer.hpp"
 #include "caffe/util/benchmark.hpp"
+#include "caffe/util/format.hpp"
+#include "caffe/util/rng.hpp"
 
 namespace caffe {
 
@@ -54,6 +57,30 @@ void DataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
       this->prefetch_[i]->label_.Reshape(label_shape);
     }
   }
+
+  shuffle_size_ = this->layer_param_.data_param().shuffle_size();
+
+  if(shuffle_size_!=0)
+  {
+	  int n;
+	  for (n = 0; n < shuffle_size_; n++) {
+		key_set.push_back(cursor_->key());
+		cursor_->Next();
+		if (!cursor_->valid()) {
+		  n++;
+		  break;
+		}
+	  }
+	  LOG_IF(INFO, n<shuffle_size_ && Caffe::root_solver())<< "Shuffle_size is greater than total number of elements. Using "<<n<<" as shuffle size.";
+
+	  const unsigned int prefetch_rng_seed = caffe_rng_rand();
+	  prefetch_rng_.reset(new Caffe::RNG(prefetch_rng_seed));
+	  ShuffleLMDB();
+
+	  LOG(INFO) << "Solver"<< Caffe::solver_rank()<< " - Shuffling LMDB : Shuffle Size(" << shuffle_size_ << "), Base Seed("<<prefetch_rng_seed<<")";
+  }
+
+
 }
 
 template <typename Dtype>
@@ -68,14 +95,33 @@ bool DataLayer<Dtype>::Skip() {
 
 template<typename Dtype>
 void DataLayer<Dtype>::Next() {
-  cursor_->Next();
-  if (!cursor_->valid()) {
-    LOG_IF(INFO, Caffe::root_solver())
-        << "Restarting data prefetching from start.";
-    cursor_->SeekToFirst();
+  if (this->layer_param_.phase() == TEST || shuffle_size_==0) {
+	cursor_->Next();
+	if (!cursor_->valid()) {
+	  LOG_IF(INFO, Caffe::root_solver())
+			  << "Restarting data prefetching from start.";
+	  cursor_->SeekToFirst();
+	}
+  } else {
+	iterator_++;
+
+	if (iterator_ == key_set.end()) {
+	  LOG_IF(INFO, Caffe::root_solver())
+				<< "Restarting data prefetching from start.";
+ 	  ShuffleLMDB();
+	}
   }
   offset_++;
 }
+
+template<typename Dtype>
+void DataLayer<Dtype>::ShuffleLMDB() {
+  caffe::rng_t* prefetch_rng = static_cast<caffe::rng_t*>(prefetch_rng_->generator());
+  shuffle(key_set.begin(), key_set.end(), prefetch_rng);
+  iterator_ = key_set.begin();
+}
+
+//#define LMDB_DEBUG 1
 
 // This function is called on prefetch thread
 template<typename Dtype>
@@ -90,11 +136,26 @@ void DataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const int batch_size = this->layer_param_.data_param().batch_size();
 
   Datum datum;
+  string new_key;
+
+#ifdef LMDB_DEBUG
+  string temp_buf="";
+#endif
+
   for (int item_id = 0; item_id < batch_size; ++item_id) {
     timer.Start();
     while (Skip()) {
       Next();
     }
+    if (shuffle_size_!=0) {
+   	  string new_key = *iterator_;
+	  cursor_->Retrieval(&new_key);
+
+#ifdef LMDB_DEBUG
+	  temp_buf+=(new_key+", ");
+#endif
+    }
+
     datum.ParseFromString(cursor_->value());
     read_time += timer.MicroSeconds();
 
@@ -123,6 +184,11 @@ void DataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     trans_time += timer.MicroSeconds();
     Next();
   }
+
+#ifdef LMDB_DEBUG
+  if(temp_buf!="") LOG(INFO)<<"[[[Solver"<<Caffe::solver_rank()<<"/Data Seq : "<<temp_buf<<"]]]";
+#endif
+
   timer.Stop();
   batch_timer.Stop();
   DLOG(INFO) << "Prefetch batch: " << batch_timer.MilliSeconds() << " ms.";

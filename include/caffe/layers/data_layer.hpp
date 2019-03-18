@@ -28,11 +28,18 @@ class DataLayer : public BasePrefetchingDataLayer<Dtype> {
  protected:
   void Next();
   bool Skip();
+  void ShuffleLMDB();
   virtual void load_batch(Batch<Dtype>* batch);
 
   shared_ptr<db::DB> db_;
   shared_ptr<db::Cursor> cursor_;
   uint64_t offset_;
+
+  // For LMDB shuffling
+  shared_ptr<Caffe::RNG> prefetch_rng_;
+  vector<string> key_set;
+  vector<string>::iterator iterator_;
+  int shuffle_size_;
 };
 
 }  // namespace caffe

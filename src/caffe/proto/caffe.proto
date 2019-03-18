@@ -708,6 +708,9 @@ message DataParameter {
   // Prefetch queue (Increase if data feeding bandwidth varies, within the
   // limit of device memory for GPU training)
   optional uint32 prefetch = 10 [default = 4];
+  
+  // Data set size for shuffling
+  optional uint32 shuffle_size = 11 [default = 0];
 }
 
 message DropoutParameter {
