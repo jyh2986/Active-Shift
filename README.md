@@ -69,7 +69,7 @@ You can download trained ImageNet model [here](models/ASL_Model/ImageNet/test_mo
 ## TODO
 - [x] Update Readme
 - [x] Upload trained ImageNet model 
-- [ ] Upload CIFAR10 prototxt
+- [x] Upload CIFAR10 prototxt
 
 
 
